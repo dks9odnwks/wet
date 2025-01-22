@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>애니메이션 갤러리</title>
+    <title>디스코드 인증</title>
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
     <style>
         * {
             margin: 0;
@@ -12,178 +13,95 @@
         }
 
         body {
-            background-color: #1a1a1a;
-            color: white;
-            font-family: Arial, sans-serif;
-            padding: 20px;
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #36393f;
+            color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            line-height: 1.6;
         }
 
         .container {
-            max-width: 1200px;
-            margin: 0 auto;
+            background-color: #2f3136;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
         }
 
-        .btn-refresh {
-            padding: 12px 24px;
-            background-color: #ec4899;
+        .logo {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 1rem;
+        }
+
+        h1 {
+            color: #ffffff;
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+
+        p {
+            color: #b9bbbe;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .g-recaptcha {
+            margin-bottom: 1rem;
+        }
+
+        button {
+            background-color: #5865f2;
             color: white;
             border: none;
-            border-radius: 8px;
+            padding: 0.8rem 1.5rem;
+            border-radius: 4px;
+            font-size: 1rem;
             cursor: pointer;
-            font-size: 16px;
-            margin-bottom: 20px;
-            transition: all 0.3s ease;
-        }
-
-        .btn-refresh:hover {
-            background-color: #db2777;
-            transform: translateY(-2px);
-        }
-
-        .gallery {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-
-        .image-card {
-            position: relative;
-            border-radius: 12px;
-            overflow: hidden;
-            background-color: #2d2d2d;
-            transition: transform 0.3s ease;
-        }
-
-        .image-card:hover {
-            transform: translateY(-5px);
-        }
-
-        .image-card img {
+            transition: background-color 0.2s;
             width: 100%;
-            height: 380px;
-            object-fit: cover;
-            transition: transform 0.3s ease;
         }
 
-        .image-card:hover img {
-            transform: scale(1.05);
+        button:hover {
+            background-color: #4752c4;
         }
 
-        .loading {
-            text-align: center;
-            padding: 20px;
-            font-size: 18px;
-            color: #ec4899;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        }
-
-        .loading::after {
-            content: '⭐';
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-
-        @media (max-width: 768px) {
-            .gallery {
-                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            }
+        .discord-style {
+            background-color: #2f3136;
+            border: 1px solid #202225;
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <button class="btn-refresh" id="refresh">✨ 새로운 이미지</button>
-        <div class="gallery" id="gallery"></div>
-        <div class="loading" id="loading" style="display: none;">이미지 로딩중...</div>
+        <img src="https://discord.com/assets/847541504914fd33810e70a0ea73177e.ico" alt="Discord Logo" class="logo">
+        <h1>디스코드 서버 인증</h1>
+        <p>서버 이용을 위해 인증을 진행해주세요</p>
+        
+        <div class="discord-style">
+            <p>아래 reCAPTCHA를 완료한 후<br>인증하기 버튼을 클릭해주세요</p>
+        </div>
+
+        <form action="/complete-verification" method="POST">
+            <input type="hidden" name="user_id" value="{{ user_id }}">
+            <div class="g-recaptcha" data-sitekey="{{ site_key }}"></div>
+            <button type="submit">인증하기</button>
+        </form>
     </div>
-
-    <script>
-        const state = {
-            images: [],
-            loading: false,
-            page: 1
-        };
-
-        const gallery = document.getElementById('gallery');
-        const loading = document.getElementById('loading');
-        const refresh = document.getElementById('refresh');
-
-        async function fetchImages(reset = false) {
-            if (state.loading) return;
-            state.loading = true;
-            loading.style.display = 'block';
-
-            if (reset) {
-                state.page = 1;
-                gallery.innerHTML = '';
-                state.images = [];
-            }
-
-            try {
-                const response = await fetch('https://nekos.best/api/v2/waifu?amount=20');
-                
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-
-                const data = await response.json();
-                const newImages = data.results || [];
-                
-                state.images = [...state.images, ...newImages];
-                
-                if (state.images.length <= 100) {  // 최대 100개까지만 표시
-                    renderImages();
-                }
-
-                state.page++;
-            } catch (error) {
-                console.error('Error fetching images:', error);
-            } finally {
-                state.loading = false;
-                loading.style.display = 'none';
-            }
-        }
-
-        function renderImages() {
-            const imagesHtml = state.images.map(image => `
-                <div class="image-card">
-                    <img src="${image.url || image.anime_name}" alt="Waifu">
-                </div>
-            `).join('');
-
-            if (state.page === 1) {
-                gallery.innerHTML = imagesHtml;
-            } else {
-                gallery.insertAdjacentHTML('beforeend', imagesHtml);
-            }
-        }
-
-        function handleScroll() {
-            if (state.loading) return;
-            if (state.images.length >= 100) return;
-
-            const scrolled = window.scrollY;
-            const viewportHeight = window.innerHeight;
-            const fullHeight = document.documentElement.scrollHeight;
-
-            if (scrolled + viewportHeight >= fullHeight - 300) {
-                fetchImages();
-            }
-        }
-
-        refresh.onclick = () => fetchImages(true);
-        window.addEventListener('scroll', handleScroll);
-
-        // 초기 이미지 로드
-        fetchImages(true);
-    </script>
 </body>
 </html>
